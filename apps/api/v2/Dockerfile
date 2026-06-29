@@ -16,7 +16,11 @@ ENV USE_POOL="true"
 
 COPY . .
 
-RUN yarn install
+# Instalar dependencias nativas para compilar node-gyp (Python, Make, G++)
+RUN apk add --no-cache python3 make g++
+
+# RUN yarn install
+RUN yarn config set httpTimeout 3600000 && YARN_NODE_LINKER=node-modules YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install --inline-builds
 RUN yarn workspace @calcom/api-v2 run generate-schemas
 RUN yarn workspace @calcom/api-v2 run build:docker
 RUN yarn workspace @calcom/api-v2 run build

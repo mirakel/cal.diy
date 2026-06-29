@@ -12,14 +12,16 @@ networks:
 services:
   database:
     container_name: database
-    image: postgres
+    image: postgres:15-alpine
     restart: always
     volumes:
-      - database-data:/var/lib/postgresql
+      - database-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=unicorn_user
       - POSTGRES_PASSWORD=magical_password
       - POSTGRES_DB=calendso
+    ports:
+      - "5450:5432"
     networks:
       - stack
 
@@ -39,6 +41,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
       args:
         NEXT_PUBLIC_WEBAPP_URL: ${NEXT_PUBLIC_WEBAPP_URL}
         NEXT_PUBLIC_API_V2_URL: ${NEXT_PUBLIC_API_V2_URL}
@@ -57,11 +60,12 @@ services:
     networks:
       - stack
     ports:
-      - 3000:3000
+      - 3001:3000
     env_file: .env
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
       - DATABASE_DIRECT_URL=${DATABASE_URL}
+      - PORT=3000
     depends_on:
       - database
 
@@ -70,6 +74,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/v2/Dockerfile
+      network: host
       args:
         DATABASE_URL: ${DATABASE_URL}
         DATABASE_DIRECT_URL: ${DATABASE_URL}
@@ -118,21 +123,21 @@ services:
       - redis
 
   # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
-  studio:
-    image: calcom.docker.scarf.sh/calcom/cal.diy
-    restart: always
-    networks:
-      - stack
-    ports:
-      - 5555:5555
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
-      - DATABASE_DIRECT_URL=${DATABASE_URL}
-    depends_on:
-      - database
-    command:
-      - npx
-      - prisma
-      - studio
+  # studio:
+  #   image: calcom.docker.scarf.sh/calcom/cal.diy
+  #   restart: always
+  #   networks:
+  #     - stack
+  #   ports:
+  #     - 5555:5555
+  #   env_file: .env
+  #   environment:
+  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
+  #     - DATABASE_DIRECT_URL=${DATABASE_URL}
+  #   depends_on:
+  #     - database
+  #   command:
+  #     - npx
+  #     - prisma
+  #     - studio
 # END SECTION: Optional use of Prisma Studio.
