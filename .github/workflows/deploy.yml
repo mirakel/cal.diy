@@ -17,16 +17,17 @@ jobs:
       - name: Log in to Render Registry
         uses: docker/login-action@v3
         with:
-          registry: cr.render.com
-          username: ${{ secrets.RENDER_REGISTRY_USER }}
-          password: ${{ secrets.RENDER_REGISTRY_PASSWORD }}
+          # CORREGIDO: registry.render.com
+          registry: registry.render.com
+          username: ${{ secrets.RENDER_REGISTRY_USER }} 
+          password: ${{ secrets.RENDER_REGISTRY_PASSWORD }} 
 
       - name: Build and Push Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: cr.render.com/usr-d917jg19rddc73dbivd0/cal-diy:latest
+          tags: registry.render.com/usr-d917jg19rddc73dbivd0/cal-diy:latest
           build-args: |
             NEXT_PUBLIC_WEBAPP_URL=https://cal-diy-0sh7.onrender.com
             NEXT_PUBLIC_API_V2_URL=https://cal-diy-0sh7.onrender.com/api/v2
