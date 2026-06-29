@@ -11,12 +11,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # SOLUCIÓN CRÍTICA: Forzar DNS públicos en el servicio de Docker del Runner
-      - name: Fix GitHub Actions DNS Resolver
+      # SOLUCIÓN INMUNE A FALLOS DE DNS: Forzar IP en /etc/hosts
+      - name: Force Render IP in Hosts File
         run: |
-          sudo mkdir -p /etc/docker
-          echo '{"dns": ["8.8.8.8", "8.8.4.4"]}' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
+          echo "Resolviendo IP de Render usando DNS públicos alternativos..."
+          RENDER_IP=$(nslookup cr.render.com 8.8.8.8 | awk '/Address:/ {print $2}' | tail -n1)
+          if [ -z "$RENDER_IP" ]; then
+            # Si el script falla por alguna razón, usamos una IP estática conocida y válida de la CDN de Render
+            RENDER_IP="216.24.57.3"
+          fi
+          echo "IP detectada: $RENDER_IP"
+          echo "$RENDER_IP cr.render.com" | sudo tee -a /etc/hosts
+          echo "Verificando conexión directa..."
+          ping -c 2 cr.render.com || true
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
