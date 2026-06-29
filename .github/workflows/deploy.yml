@@ -26,8 +26,7 @@ jobs:
         with:
           context: .
           push: true
-          # Reemplaza 'tu_usuario_dockerhub' por tu alias real de Docker Hub
-          tags: tu_usuario_dockerhub/cal-diy:latest
+          tags: mirakel14/cal-diy:latest
           build-args: |
             NEXT_PUBLIC_WEBAPP_URL=https://cal-diy-5gp6.onrender.com
             NEXT_PUBLIC_API_V2_URL=https://cal-diy-5gp6.onrender.com/api/v2
