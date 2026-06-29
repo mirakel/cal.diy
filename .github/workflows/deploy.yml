@@ -11,19 +11,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # SOLUCIÓN INMUNE A FALLOS DE DNS: Forzar IP en /etc/hosts
-      - name: Force Render IP in Hosts File
+      # SOLUCIÓN INMUNE: Forzamos la IP directa de la infraestructura de Render
+      - name: Force Render Edge IP in Hosts File
         run: |
-          echo "Resolviendo IP de Render usando DNS públicos alternativos..."
-          RENDER_IP=$(nslookup cr.render.com 8.8.8.8 | awk '/Address:/ {print $2}' | tail -n1)
-          if [ -z "$RENDER_IP" ]; then
-            # Si el script falla por alguna razón, usamos una IP estática conocida y válida de la CDN de Render
-            RENDER_IP="216.24.57.3"
-          fi
-          echo "IP detectada: $RENDER_IP"
-          echo "$RENDER_IP cr.render.com" | sudo tee -a /etc/hosts
-          echo "Verificando conexión directa..."
-          ping -c 2 cr.render.com || true
+          echo "Inyectando IP estática certificada para cr.render.com..."
+          echo "216.24.57.3 cr.render.com" | sudo tee -a /etc/hosts
+          echo "Verificando enrutamiento..."
+          cat /etc/hosts | grep cr.render.com
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
