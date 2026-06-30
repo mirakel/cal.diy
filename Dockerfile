@@ -64,7 +64,8 @@ COPY --from=builder /calcom/yarn.lock ./yarn.lock
 COPY --from=builder /calcom/node_modules ./node_modules
 COPY --from=builder /calcom/packages ./packages
 COPY --from=builder /calcom/apps/web ./apps/web
-COPY --from=builder /calcom/packages/prisma/schema.prisma ./prisma/schema.prisma
+# COPY --from=builder /calcom/packages/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=builder /calcom/packages/prisma ./prisma
 COPY scripts scripts
 RUN chmod +x scripts/*
 
@@ -90,6 +91,6 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
-  CMD wget --spider http://localhost:3000 || exit 1
+  CMD wget -q --spider http://localhost:3000 || exit 1
 
 CMD ["/calcom/scripts/start.sh"]
