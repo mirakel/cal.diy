@@ -1,0 +1,59 @@
+# ==========================================
+# STAGE 1: Base & Dependencies
+# ==========================================
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /calcom
+
+# Copiar archivos de configuración del monorepo
+COPY package.json yarn.lock .yarnrc.yml turbo.json tsconfig.json ./
+COPY .yarn ./.yarn
+
+# Copiar paquetes internos necesarios y la API
+COPY packages ./packages
+COPY apps/api/v2 ./apps/api/v2
+
+# Instalar todas las dependencias
+RUN yarn install --immutable
+
+# ==========================================
+# STAGE 2: Builder
+# ==========================================
+FROM node:20-alpine AS builder
+WORKDIR /calcom
+
+COPY --from=deps /calcom ./
+
+ENV NODE_ENV=production
+
+# 1. Generar cliente de Prisma (Paso indispensable para la DB)
+RUN yarn workspace @calcom/prisma db-deploy || true
+RUN yarn workspace @calcom/prisma generate
+
+# 2. Construir los paquetes dependientes y la API v2
+RUN yarn workspace @calcom/api-v2 build
+
+# ==========================================
+# STAGE 3: Runner (Imagen de Producción)
+# ==========================================
+FROM node:20-alpine AS runner
+WORKDIR /calcom
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nestjs
+
+# Copiar archivos esenciales construidos
+COPY --from=builder /calcom/package.json ./package.json
+COPY --from=builder /calcom/node_modules ./node_modules
+COPY --from=builder /calcom/packages ./packages
+COPY --from=builder /calcom/apps/api/v2 ./apps/api/v2
+
+USER nestjs
+
+EXPOSE 3000
+
+# Ejecución directa con Node (Más rápida y estable en Render)
+CMD ["node", "apps/api/v2/dist/main.js"]
