@@ -5,7 +5,7 @@ WORKDIR /calcom
 COPY package.json yarn.lock .yarnrc.yml turbo.json ./
 COPY .yarn ./.yarn
 
-COPY apps/api/v2 ./apps/api/v2
+COPY apps ./apps
 COPY packages ./packages
 
 RUN yarn install
@@ -23,7 +23,7 @@ COPY --from=builder /calcom/yarn.lock ./
 COPY --from=builder /calcom/.yarn ./.yarn
 COPY --from=builder /calcom/node_modules ./node_modules
 
-COPY --from=builder /calcom/apps/api/v2 ./apps/api/v2
+COPY --from=builder /calcom/apps ./apps
 COPY --from=builder /calcom/packages ./packages
 
 EXPOSE 3000
