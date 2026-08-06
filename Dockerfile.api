@@ -20,13 +20,16 @@ WORKDIR /calcom
 COPY --from=deps /calcom ./
 
 ENV NODE_ENV=production
-# Desactivar la comprobación de tipos estricta durante el empaquetado de produccion
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_BUILD_STATIC_GENERATION=true
 ENV NEST_CLI_BUILD_NO_TYPE_CHECK=true
 
-# Construir omitiendo verificaciones de tipos estrictas globales
-RUN yarn workspace @calcom/api-v2 build
+# Generar el cliente de Prisma
+RUN yarn workspace @calcom/prisma generate
+
+# 1. Compilar los paquetes internos compartidos de los que depende la API
+RUN yarn build --filter=@calcom/api-v2...
 
 # ==========================================
 # STAGE 3: Runner (Imagen de Producción)
@@ -40,7 +43,7 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copiar la estructura compilada y node_modules
+# Copiar el monorepo compilado completo
 COPY --from=builder --chown=nestjs:nodejs /calcom/package.json ./package.json
 COPY --from=builder --chown=nestjs:nodejs /calcom/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /calcom/packages ./packages
@@ -50,5 +53,4 @@ USER nestjs
 
 EXPOSE 3000
 
-# Ejecutar directamente el archivo JS empaquetado de NestJS sin invocar Yarn
 CMD ["node", "apps/api/v2/dist/apps/api/v2/src/main.js"]
