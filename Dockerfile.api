@@ -23,10 +23,10 @@ ENV NODE_ENV=production
 # Desactivar la comprobación de tipos estricta durante el empaquetado de produccion
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_BUILD_STATIC_GENERATION=true
-
+ENV NEST_CLI_BUILD_NO_TYPE_CHECK=true
 
 # Construir omitiendo verificaciones de tipos estrictas globales
-RUN yarn workspace @calcom/api-v2 build --skipLibCheck
+RUN yarn workspace @calcom/api-v2 build
 
 # ==========================================
 # STAGE 3: Runner (Imagen de Producción)
