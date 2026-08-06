@@ -37,16 +37,11 @@ WORKDIR /calcom
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Habilitar Corepack para que Node reconozca Yarn 4+ automáticamente
-RUN corepack enable
-
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copiar la estructura del monorepo compilado
+# Copiar la estructura compilada y node_modules
 COPY --from=builder --chown=nestjs:nodejs /calcom/package.json ./package.json
-COPY --from=builder --chown=nestjs:nodejs /calcom/yarn.lock ./yarn.lock
-COPY --from=builder --chown=nestjs:nodejs /calcom/.yarn ./.yarn
 COPY --from=builder --chown=nestjs:nodejs /calcom/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /calcom/packages ./packages
 COPY --from=builder --chown=nestjs:nodejs /calcom/apps/api/v2 ./apps/api/v2
@@ -55,4 +50,5 @@ USER nestjs
 
 EXPOSE 3000
 
-CMD ["yarn", "workspace", "@calcom/api-v2", "start"]
+# Ejecutar directamente el archivo JS empaquetado de NestJS sin invocar Yarn
+CMD ["node", "apps/api/v2/dist/apps/api/v2/src/main.js"]
