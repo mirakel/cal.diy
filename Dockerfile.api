@@ -8,8 +8,7 @@ COPY .yarn ./.yarn
 COPY apps/api/v2 ./apps/api/v2
 COPY packages ./packages
 
-RUN yarn install --immutable
-
+RUN yarn install
 RUN yarn workspace @calcom/api-v2 build
 
 
