@@ -1,31 +1,57 @@
-FROM node:20 AS builder
-
+# ==========================================
+# STAGE 1: Base & Dependencies
+# ==========================================
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /calcom
 
+# Copiar solo los archivos de configuración reales de la raíz
 COPY package.json yarn.lock .yarnrc.yml turbo.json ./
 COPY .yarn ./.yarn
 
-COPY apps ./apps
+# Copiar paquetes internos y la API v2
 COPY packages ./packages
+COPY apps/api/v2 ./apps/api/v2
 
+# Instalar dependencias del monorepo
 RUN yarn install
-RUN yarn workspace @calcom/api-v2 build
 
-
-FROM node:20
-
+# ==========================================
+# STAGE 2: Builder
+# ==========================================
+FROM node:20-alpine AS builder
 WORKDIR /calcom
+
+COPY --from=deps /calcom ./
 
 ENV NODE_ENV=production
 
-COPY --from=builder /calcom/package.json ./
-COPY --from=builder /calcom/yarn.lock ./
-COPY --from=builder /calcom/.yarn ./.yarn
-COPY --from=builder /calcom/node_modules ./node_modules
 
-COPY --from=builder /calcom/apps ./apps
-COPY --from=builder /calcom/packages ./packages
+# Construir la API v2 y sus paquetes dependientes
+RUN yarn workspace @calcom/api-v2 build
+
+# ==========================================
+# STAGE 3: Runner (Imagen de Producción)
+# ==========================================
+FROM node:20-alpine AS runner
+WORKDIR /calcom
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+
+# Copiar monorepo necesario manteniendo permisos para NestJS
+COPY --from=builder --chown=nestjs:nodejs /calcom/package.json ./package.json
+COPY --from=builder --chown=nestjs:nodejs /calcom/yarn.lock ./yarn.lock
+COPY --from=builder --chown=nestjs:nodejs /calcom/.yarn ./.yarn
+COPY --from=builder --chown=nestjs:nodejs /calcom/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /calcom/packages ./packages
+COPY --from=builder --chown=nestjs:nodejs /calcom/apps/api/v2 ./apps/api/v2
+
+USER nestjs
 
 EXPOSE 3000
 
-CMD ["yarn", "workspace", "@calcom/api-v2", "start:prod"]
+CMD ["yarn", "workspace", "@calcom/api-v2", "start"]
