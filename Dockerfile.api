@@ -1,56 +1,46 @@
-# ==========================================
-# STAGE 1: Base & Dependencies
-# ==========================================
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    libc6-compat
+
+RUN corepack enable
+
 WORKDIR /calcom
 
-# Copiar todo el monorepo para resolver dependencias compartidas y Workspaces
 COPY . .
 
-# Instalar todas las dependencias
+ENV NODE_OPTIONS=--max_old_space_size=4096
+
 RUN yarn install
 
-# ==========================================
-# STAGE 2: Builder
-# ==========================================
+
 FROM node:20-alpine AS builder
+
 WORKDIR /calcom
 
 COPY --from=deps /calcom ./
 
-ENV NODE_ENV=production
-ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV SKIP_BUILD_STATIC_GENERATION=true
-ENV NEST_CLI_BUILD_NO_TYPE_CHECK=true
+ENV NODE_ENV=development
+ENV NODE_OPTIONS=--max_old_space_size=4096
 
-# Generar el cliente de Prisma
-RUN yarn workspace @calcom/prisma generate
+RUN yarn turbo run build --filter=@calcom/api-v2...
 
-# 1. Compilar los paquetes internos compartidos de los que depende la API
-RUN yarn build --filter=@calcom/api-v2...
 
-# ==========================================
-# STAGE 3: Runner (Imagen de Producción)
-# ==========================================
 FROM node:20-alpine AS runner
+
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /calcom
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nestjs
-
-# Copiar el monorepo compilado completo
-COPY --from=builder --chown=nestjs:nodejs /calcom/package.json ./package.json
-COPY --from=builder --chown=nestjs:nodejs /calcom/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nodejs /calcom/packages ./packages
-COPY --from=builder --chown=nestjs:nodejs /calcom/apps/api/v2 ./apps/api/v2
-
-USER nestjs
+COPY --from=builder /calcom .
 
 EXPOSE 3000
 
-CMD ["node", "apps/api/v2/dist/apps/api/v2/src/main.js"]
+CMD ["node","apps/api/v2/dist/apps/api/v2/src/main.js"]
