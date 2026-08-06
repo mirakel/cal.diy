@@ -42,7 +42,3 @@ jobs:
             CALENDSO_ENCRYPTION_KEY=${{ secrets.CALENDSO_ENCRYPTION_KEY }}
             NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
             MAX_OLD_SPACE_SIZE=4096
-
-      # - name: Trigger Deploy on Render
-      #   run: |
-      #     curl -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}"
