@@ -54,12 +54,7 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            docker pull mirakel14/cal-diy-api:latest
-            docker stop calcom-api || true
-            docker rm calcom-api || true
-            docker run -d \
-              --name calcom-api \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              --env-file /home/ubuntu/cal-diy/.env \
-              mirakel14/cal-diy-api:latest
+            cd /home/ubuntu/cal-diy
+            docker compose pull calcom-api
+            docker compose up -d --no-deps --force-recreate calcom-api
+            docker image prune -f

@@ -35,5 +35,8 @@ Thumbs.db
 # Examples and docs
 docs
 
-# env
+# env (never bake secrets into the image)
 .env
+.env.*
+**/.env
+**/.env.*
